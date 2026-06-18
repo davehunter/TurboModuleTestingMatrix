@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "rtn-testable-module": "file:../../../RTNTestableModule"
+  }
+}

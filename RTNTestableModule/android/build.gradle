@@ -1,0 +1,40 @@
+apply plugin: "com.android.library"
+apply plugin: "com.facebook.react"
+apply plugin: "org.jetbrains.kotlin.android"
+
+android {
+  namespace "com.rtntestablemodule"
+  compileSdkVersion rootProject.ext.compileSdkVersion
+
+  buildFeatures {
+    prefab true
+  }
+
+  defaultConfig {
+    minSdkVersion rootProject.ext.minSdkVersion
+    targetSdkVersion rootProject.ext.targetSdkVersion
+    externalNativeBuild {
+      cmake {
+        cppFlags "-std=c++17"
+        arguments "-DANDROID_STL=c++_shared",
+          "-DREACT_NATIVE_DIR=${rootProject.projectDir}/../node_modules/react-native"
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "../CMakeLists.txt"
+    }
+  }
+}
+
+react {
+  libraryName.set("RTNTestableModule")
+  codegenJavaPackageName.set("com.rtntestablemodule")
+}
+
+dependencies {
+  implementation("com.facebook.react:react-android")
+  implementation("com.facebook.fbjni:fbjni:0.7.0")
+}
