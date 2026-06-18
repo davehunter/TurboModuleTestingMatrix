@@ -30,3 +30,12 @@ require_known_version() {
     exit 1
   fi
 }
+
+# missing_host_app_dirs <rn...> — prints any versions whose apps/<rn>/HostApp/
+# is absent. Caller decides how to report.
+missing_host_app_dirs() {
+  local rn
+  for rn in "$@"; do
+    [[ -d "${MATRIX_ROOT}/apps/${rn}/HostApp" ]] || echo "$rn"
+  done
+}

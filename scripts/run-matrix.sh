@@ -40,6 +40,30 @@ else
   done
 fi
 
+# ---------- preflight: every requested version must have a generated host app ----------
+# A missing apps/<rn>/HostApp/ is a config error (registry entry without an app),
+# not a test failure. Surface it distinctly so CI logs and exit code make the
+# diagnosis obvious. Exit code 2 distinguishes config errors from real test
+# failures (exit 1).
+MISSING=()
+while IFS= read -r v; do
+  [[ -n "$v" ]] && MISSING+=("$v")
+done < <(missing_host_app_dirs "${REQUESTED[@]}")
+if [[ ${#MISSING[@]} -gt 0 ]]; then
+  err "═══════════════════════════════════════════════════════════════"
+  err "config error: versions.json lists versions whose host apps don't exist."
+  err ""
+  for v in "${MISSING[@]}"; do
+    err "  - $v  →  expected apps/${v}/HostApp/, not found"
+  done
+  err ""
+  err "to fix, either:"
+  err "  • scripts/generate.sh <version>   (generate the missing host app, then commit)"
+  err "  • remove the entry from versions.json if it shouldn't be in the matrix yet"
+  err "═══════════════════════════════════════════════════════════════"
+  exit 2
+fi
+
 # ---------- framework source ----------
 FW_KIND=""
 FW_VALUE=""
@@ -98,18 +122,8 @@ for V in "${REQUESTED[@]}"; do
   mkdir -p "$LOG_DIR"
   : > "$JSONL"
 
-  if [[ ! -d "$APP_DIR" ]]; then
-    err "[$V] apps/$V/HostApp not generated yet — run scripts/generate.sh $V first"
-    record_skipped "$V" "npm-install"     "$JSONL"
-    record_skipped "$V" "pod-install"     "$JSONL"
-    record_skipped "$V" "codegen-check"   "$JSONL"
-    record_skipped "$V" "cmake-configure" "$JSONL"
-    record_skipped "$V" "cmake-build"     "$JSONL"
-    record_skipped "$V" "ctest"           "$JSONL"
-    continue
-  fi
-
   # phase: npm-install
+  # (The presence of $APP_DIR was already validated by the preflight above.)
   if [[ -f "$APP_DIR/package-lock.json" ]]; then
     run_phase "$V" "npm-install" "$LOG_DIR" "$JSONL" "$T_NPM" "$APP_DIR" -- npm ci
   else
