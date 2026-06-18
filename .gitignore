@@ -1,0 +1,10 @@
+build/
+results/
+**/node_modules/
+**/ios/Pods/
+**/ios/build/
+**/vendor/bundle/
+.DS_Store
+compile_commands.json
+*.log
+**/.metro-health-check*

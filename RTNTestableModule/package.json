@@ -1,0 +1,20 @@
+{
+    "name": "rtn-testable-module",
+    "version": "0.0.1",
+    "main": "src/index.ts",
+    "react-native": "src/index.ts",
+    "codegenConfig": {
+        "name": "NativeRTNTestableModule",
+        "libraryName": "NativeRTNTestableModule",
+        "type": "modules",
+        "jsSrcsDir": "src",
+        "ios": {
+            "modulesProvider": {
+                "NativeRTNTestableModule": "NativeRTNTestableModuleProvider"
+            }
+        },
+        "android": {
+            "javaPackageName": "com.rtntestablemodule"
+        }
+    }
+}
