@@ -31,6 +31,14 @@
       "node": ">=20",
       "ruby": "3.2",
       "notes": "Latest 0.84.x patch. RN 0.84 added TurboModuleProviderFunctionTypeWithRuntime."
+    },
+    {
+      "rn": "0.85.3",
+      "cli": "@react-native-community/cli@latest",
+      "cliInitFlavor": "community",
+      "node": ">=20",
+      "ruby": "3.2",
+      "notes": "Latest 0.85.x patch."
     }
   ]
 }
