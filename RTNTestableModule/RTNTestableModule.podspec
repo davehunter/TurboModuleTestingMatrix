@@ -2,6 +2,18 @@ require "json"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 
+# Detect the consuming app's React Native version so we can emit the correct
+# pod dependency names. Pod naming changed in RN 0.84: `RCT-Folly` and
+# `React-Codegen` were consolidated into the `ReactNativeDependencies`
+# umbrella pod.
+install_root = Pod::Config.instance.installation_root.to_s rescue nil
+rn_version = "0.0.0"
+if install_root
+  rn_pkg = File.expand_path("../node_modules/react-native/package.json", install_root)
+  rn_version = JSON.parse(File.read(rn_pkg))["version"] if File.exist?(rn_pkg)
+end
+rn_minor = rn_version.split(".")[1].to_i
+
 Pod::Spec.new do |s|
   s.name         = "RTNTestableModule"
   s.version      = package["version"]
@@ -22,7 +34,12 @@ Pod::Spec.new do |s|
   }
 
   s.dependency "React-Core"
-  s.dependency "React-Codegen"
   s.dependency "ReactCommon"
-  s.dependency "RCT-Folly"
+
+  if rn_minor >= 84
+    s.dependency "ReactNativeDependencies"
+  else
+    s.dependency "React-Codegen"
+    s.dependency "RCT-Folly"
+  end
 end
