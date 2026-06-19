@@ -60,6 +60,15 @@ run_phase() {
     timeout_bin="timeout"
   fi
 
+  # Wrap the verbose phase output in a GitHub Actions collapsible group so the
+  # live workflow log stays scannable. The final pass/fail line is emitted
+  # outside the group so it's always visible at top level.
+  local in_gha=0
+  [[ "${GITHUB_ACTIONS:-}" == "true" ]] && in_gha=1
+  if [[ $in_gha -eq 1 ]]; then
+    printf '::group::%s\n' "$prefix"
+  fi
+
   # Run in a subshell with errexit disabled; capture exit code without aborting
   # the calling script (which uses set -e in some entry points).
   if [[ -n "$timeout_bin" ]]; then
@@ -76,6 +85,10 @@ run_phase() {
     ) > >(tee "$log_file" | sed -u "s|^|${prefix} |") 2>&1
   fi
   ec=$?
+
+  if [[ $in_gha -eq 1 ]]; then
+    printf '::endgroup::\n'
+  fi
 
   t1="$(epoch_ms)"
   end_iso="$(iso_now)"
