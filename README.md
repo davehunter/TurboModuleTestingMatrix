@@ -1,5 +1,7 @@
 # TurboModuleTestingMatrix
 
+Note, this is a very AI generated testsuite by claude 2.1.181 (Opus 4.8)
+
 Tests to verify that [TurboModuleTesting](https://github.com/davehunter/TurboModuleTesting) works across multiple React Native versions.
 
 The matrix holds one fully-locked host app per RN version under `apps/<rn>/HostApp/`, a shared `RTNTestableModule/` exercised by every version, and a driver that compiles + runs the framework's tests against each.
