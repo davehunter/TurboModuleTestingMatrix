@@ -104,6 +104,51 @@ jobs:
           TURBO_MODULE_TESTING_SRC: ${{ github.workspace }}/TurboModuleTesting
         run: ./scripts/run-matrix.sh ${{ matrix.rn }}
 
+      - name: Publish phase logs to step summary
+        if: always()
+        working-directory: TurboModuleTestingMatrix
+        shell: bash
+        env:
+          RN: ${{ matrix.rn }}
+        # Surfaces summary.txt and the per-phase logs directly on the Actions
+        # run page (no artifact download required). cmake-build.log and
+        # ctest.log are tail-truncated to 800 lines each — usually enough to
+        # see the actual error while staying well under the 1 MB step-summary
+        # budget. The whole results/ tree is still uploaded as an artifact
+        # below for the cases where you need the full raw logs.
+        run: |
+          set -uo pipefail
+          run_dir="results/latest"
+          if [[ ! -d "$run_dir" ]]; then
+            echo "No results directory; the run never started." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo "## Matrix run — RN ${RN}"
+            echo
+            if [[ -f "$run_dir/summary.txt" ]]; then
+              echo '```'
+              cat "$run_dir/summary.txt"
+              echo '```'
+              echo
+            fi
+            v_dir="$run_dir/${RN}"
+            if [[ -d "$v_dir/logs" ]]; then
+              for phase in npm-install pod-install codegen-check cmake-configure cmake-build ctest; do
+                log_file="$v_dir/logs/${phase}.log"
+                [[ -f "$log_file" ]] || continue
+                lines=$(wc -l < "$log_file" | tr -d ' ')
+                echo "<details><summary><code>${phase}</code> — ${lines} lines</summary>"
+                echo
+                echo '```'
+                tail -n 800 "$log_file"
+                echo '```'
+                echo "</details>"
+                echo
+              done
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
