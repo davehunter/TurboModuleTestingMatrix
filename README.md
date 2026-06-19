@@ -8,20 +8,23 @@ The matrix holds one fully-locked host app per RN version under `apps/<rn>/HostA
 
 ## Add a new RN version
 
-1. Add an entry to [`versions.json`](./versions.json):
-   ```json
-   { "rn": "0.84.0", "cli": "@react-native-community/cli@latest", "cliInitFlavor": "community", "node": ">=20", "ruby": "3.2", "notes": "" }
-   ```
-2. Generate the host app:
-   ```sh
-   scripts/generate.sh 0.84.0
-   ```
-3. Commit:
-   ```sh
-   git add versions.json apps/0.84.0/
-   ```
+The 30-second version:
 
-The generator runs `npx <cli> init`, layers [`overlays/_shared/`](./overlays/_shared/) (and any per-version overrides in `overlays/<rn>/`), then runs `npm install`, `bundle install`, and `pod install` — leaving committable lock files and a gitignored `node_modules/`, `Pods/`, `vendor/bundle/`.
+```sh
+# 1. Edit versions.json — add an entry like:
+#    { "rn": "0.87.0", "cli": "@react-native-community/cli@latest", "cliInitFlavor": "community", "node": ">=20", "ruby": "3.2", "notes": "" }
+
+# 2. Generate the host app:
+PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/generate.sh 0.87.0
+
+# 3. Validate locally:
+PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run-matrix.sh
+
+# 4. Commit + PR:
+git checkout -b add-rn-0.87.0 && git add versions.json apps/0.87.0/ && gh pr create
+```
+
+**Read [`docs/ADDING_VERSIONS.md`](./docs/ADDING_VERSIONS.md) before adding a version that's far from what's already in the matrix.** Every minor we've added between 0.80 and 0.86 has surfaced at least one regression that needed a coordinated framework + matrix change. That doc covers every failure shape we've hit so far and where to fix it.
 
 ## Run the matrix
 
