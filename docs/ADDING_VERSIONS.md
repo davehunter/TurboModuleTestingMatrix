@@ -7,7 +7,7 @@ The happy path is short. The not-happy path is where this document earns its kee
 ## Prerequisites
 
 - macOS — the framework is macOS-only.
-- **Ruby 3.2 or 3.3.** CocoaPods 1.15.2 (pinned via the RN-template `Gemfile`) uses `kconv`, which was removed from the stdlib in Ruby 3.4. `brew install ruby@3.3` then prepend `/opt/homebrew/opt/ruby@3.3/bin` to your `PATH` for the local run. CI pins Ruby 3.2.
+- **Ruby 3.2 or 3.3.** CocoaPods 1.15.2 (pinned via the RN-template `Gemfile`) uses `kconv`, which was removed from the stdlib in Ruby 3.4. `brew install ruby@3.3` is enough — the scripts auto-detect a side-installed Homebrew `ruby@3.3` (or `@3.2`) and prepend it to `PATH` when the shell Ruby is too new. If they can't find one they exit with a clear actionable error. CI pins Ruby 3.2.
 - Node 20+, CMake 3.22+, Ninja.
 - `jq`, `rsync`, `gh` (for opening PRs).
 - A local sibling checkout of `TurboModuleTesting` at `../TurboModuleTesting`. The matrix picks that up automatically as the framework source.
@@ -31,7 +31,7 @@ For a version that lies inside the range of RN we already support (currently 0.8
 
 2. **Validate locally — `run-matrix.sh` auto-generates the missing app.**
    ```sh
-   PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run-matrix.sh 0.84.3
+   ./scripts/run-matrix.sh 0.84.3
    ```
    The `generate` phase runs first (it's the first column in the summary), invoking `scripts/generate.sh` under the hood. That runs `npx <cli> init` into `_generated/<rn>/HostApp/`, layers [`overlays/_shared/`](../overlays/_shared/) (and any per-version overrides under `overlays/<rn>/`), runs `npm install`, `bundle install`, and `bundle exec pod install`. Pod install triggers RN's codegen as part of `prepare_react_native_project!`, so by the time it returns there's a `NativeRTNTestableModuleJSI.h` under `ios/build/generated/ios/.../`. Subsequent phases (`npm-install` → `pod-install` → `codegen-check` → `cmake-configure` → `cmake-build` → `ctest`) then run against the materialized app.
 
@@ -150,7 +150,7 @@ A matrix PR that needs a framework change is a two-PR dance:
 When in doubt or before merging the matrix PR, run the whole matrix end-to-end:
 ```sh
 rm -rf build/
-PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run-matrix.sh
+./scripts/run-matrix.sh
 ```
 The build dir reset forces a clean configure for every version — useful because CMake caches are version-specific and a successful incremental build doesn't always mean a successful clean build.
 

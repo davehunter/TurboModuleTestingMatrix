@@ -27,6 +27,7 @@ source "$SCRIPT_DIR/lib/versions.sh"
 # shellcheck source=scripts/lib/report.sh
 source "$SCRIPT_DIR/lib/report.sh"
 
+ensure_compatible_ruby || exit 1
 require_cmd jq cmake ninja ctest npm bundle pod
 
 # ---------- args ----------
