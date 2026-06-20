@@ -81,16 +81,16 @@ jobs:
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
-          path: TurboModuleTestingMatrix/apps/${{ matrix.rn }}/HostApp/node_modules
-          key: nm-${{ runner.os }}-${{ matrix.rn }}-${{ hashFiles(format('TurboModuleTestingMatrix/apps/{0}/HostApp/package-lock.json', matrix.rn)) }}
+          path: TurboModuleTestingMatrix/_generated/${{ matrix.rn }}/HostApp/node_modules
+          key: nm-${{ runner.os }}-${{ matrix.rn }}-${{ hashFiles(format('TurboModuleTestingMatrix/_generated/{0}/HostApp/package-lock.json', matrix.rn)) }}
 
       - name: Cache Pods + bundler
         uses: actions/cache@v4
         with:
           path: |
-            TurboModuleTestingMatrix/apps/${{ matrix.rn }}/HostApp/ios/Pods
-            TurboModuleTestingMatrix/apps/${{ matrix.rn }}/HostApp/vendor/bundle
-          key: pods-${{ runner.os }}-${{ matrix.rn }}-${{ hashFiles(format('TurboModuleTestingMatrix/apps/{0}/HostApp/Podfile.lock', matrix.rn), format('TurboModuleTestingMatrix/apps/{0}/HostApp/Gemfile.lock', matrix.rn)) }}
+            TurboModuleTestingMatrix/_generated/${{ matrix.rn }}/HostApp/ios/Pods
+            TurboModuleTestingMatrix/_generated/${{ matrix.rn }}/HostApp/vendor/bundle
+          key: pods-${{ runner.os }}-${{ matrix.rn }}-${{ hashFiles(format('TurboModuleTestingMatrix/_generated/{0}/HostApp/Podfile.lock', matrix.rn), format('TurboModuleTestingMatrix/_generated/{0}/HostApp/Gemfile.lock', matrix.rn)) }}
 
       - name: Cache CMake build dir
         uses: actions/cache@v4

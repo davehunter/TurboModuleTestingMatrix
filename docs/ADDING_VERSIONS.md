@@ -14,7 +14,7 @@ The happy path is short. The not-happy path is where this document earns its kee
 
 ## The happy path
 
-For a version that lies inside the range of RN we already support (currently 0.80.3 → 0.86.0), and where no RN-side breaking change has happened, the whole thing is three commands.
+For a version that lies inside the range of RN we already support (currently 0.80.3 → 0.86.0), and where no RN-side breaking change has happened, the whole thing is one config edit.
 
 1. **Add an entry to [`versions.json`](../versions.json).** Keep entries in ascending RN order — convention, not enforced.
    ```json
@@ -29,28 +29,25 @@ For a version that lies inside the range of RN we already support (currently 0.8
    ```
    `cli` is whatever `npx <cli> init` should resolve to — `@latest` is fine for any reasonably recent RN; pin an explicit major (e.g. `@15`) only if `@latest` won't init that version.
 
-2. **Generate the host app.**
+2. **Validate locally — `run-matrix.sh` auto-generates the missing app.**
    ```sh
-   PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/generate.sh 0.84.3
+   PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run-matrix.sh 0.84.3
    ```
-   This runs `npx @react-native-community/cli@<cli> init` into `apps/<rn>/HostApp/`, layers [`overlays/_shared/`](../overlays/_shared/) (and any per-version overrides under `overlays/<rn>/`), runs `npm install`, `bundle install`, and `bundle exec pod install`. Pod install triggers RN's codegen as part of `prepare_react_native_project!`, so by the time it returns there's a `NativeRTNTestableModuleJSI.h` under `ios/build/generated/ios/.../`. The generator verifies that header is present before declaring success.
+   The `generate` phase runs first (it's the first column in the summary), invoking `scripts/generate.sh` under the hood. That runs `npx <cli> init` into `_generated/<rn>/HostApp/`, layers [`overlays/_shared/`](../overlays/_shared/) (and any per-version overrides under `overlays/<rn>/`), runs `npm install`, `bundle install`, and `bundle exec pod install`. Pod install triggers RN's codegen as part of `prepare_react_native_project!`, so by the time it returns there's a `NativeRTNTestableModuleJSI.h` under `ios/build/generated/ios/.../`. Subsequent phases (`npm-install` → `pod-install` → `codegen-check` → `cmake-configure` → `cmake-build` → `ctest`) then run against the materialized app.
 
-3. **Validate the full matrix locally.**
-   ```sh
-   PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run-matrix.sh
-   ```
-   You want `overall: PASS` and the new row reporting `pass` in every phase (`npm-install pod-install codegen-check cmake-configure cmake-build ctest`).
+   On a re-run with `_generated/<rn>/HostApp/` already on disk, the `generate` phase reports `skipped` and the rest runs against the existing tree. To force a clean regeneration: `rm -rf _generated/<rn>/HostApp` and re-run.
 
-4. **Commit and PR.**
+3. **Commit and PR.**
    ```sh
    git checkout -b add-rn-0.84.3
-   git add versions.json apps/0.84.3/
-   git commit -m "Add RN 0.84.3 host app"
+   git add versions.json
+   git commit -m "Add RN 0.84.3 to the matrix"
    git push -u origin add-rn-0.84.3
    gh pr create
    ```
+   Only `versions.json` changes — `_generated/` is not committed.
 
-CI runs the same `scripts/run-matrix.sh` against `TurboModuleTesting@main` and a fresh macOS runner — one job per RN version in `versions.json`.
+CI runs the same `scripts/run-matrix.sh` against `TurboModuleTesting@main` and a fresh macOS runner — one job per RN version in `versions.json`. Because nothing is committed under `_generated/`, the first CI run generates each app from scratch (~5–7 min per axis dominated by `pod install`). The strategy.matrix fan-out makes that real-time per RN version.
 
 ## When the happy path doesn't happen
 

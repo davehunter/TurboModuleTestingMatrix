@@ -40,30 +40,6 @@ else
   done
 fi
 
-# ---------- preflight: every requested version must have a generated host app ----------
-# A missing apps/<rn>/HostApp/ is a config error (registry entry without an app),
-# not a test failure. Surface it distinctly so CI logs and exit code make the
-# diagnosis obvious. Exit code 2 distinguishes config errors from real test
-# failures (exit 1).
-MISSING=()
-while IFS= read -r v; do
-  [[ -n "$v" ]] && MISSING+=("$v")
-done < <(missing_host_app_dirs "${REQUESTED[@]}")
-if [[ ${#MISSING[@]} -gt 0 ]]; then
-  err "═══════════════════════════════════════════════════════════════"
-  err "config error: versions.json lists versions whose host apps don't exist."
-  err ""
-  for v in "${MISSING[@]}"; do
-    err "  - $v  →  expected apps/${v}/HostApp/, not found"
-  done
-  err ""
-  err "to fix, either:"
-  err "  • scripts/generate.sh <version>   (generate the missing host app, then commit)"
-  err "  • remove the entry from versions.json if it shouldn't be in the matrix yet"
-  err "═══════════════════════════════════════════════════════════════"
-  exit 2
-fi
-
 # ---------- framework source ----------
 FW_KIND=""
 FW_VALUE=""
@@ -104,6 +80,7 @@ info "run id: $RUN_ID"
 info "versions: ${REQUESTED[*]}"
 
 # ---------- per-phase timeouts (seconds) ----------
+T_GENERATE=1500
 T_NPM=600
 T_POD=1500
 T_CODEGEN=120
@@ -113,7 +90,7 @@ T_CTEST=180
 
 # ---------- per-version loop ----------
 for V in "${REQUESTED[@]}"; do
-  APP_DIR="${MATRIX_ROOT}/apps/${V}/HostApp"
+  APP_DIR="${MATRIX_ROOT}/_generated/${V}/HostApp"
   IOS_DIR="${APP_DIR}/ios"
   BUILD_DIR="${MATRIX_ROOT}/build/${V}"
   VRES_DIR="${RUN_DIR}/${V}"
@@ -122,8 +99,26 @@ for V in "${REQUESTED[@]}"; do
   mkdir -p "$LOG_DIR"
   : > "$JSONL"
 
+  # phase: generate (lazy)
+  # When _generated/<v>/HostApp/ already exists on disk, skip. Otherwise invoke
+  # scripts/generate.sh inline as a regular phase — its output is captured by
+  # run_phase like every other phase. A generate failure short-circuits the
+  # rest of this version's phases (npm-install etc. couldn't possibly succeed
+  # against an absent or half-generated app).
+  if [[ -d "$APP_DIR" ]]; then
+    record_skipped "$V" "generate" "$JSONL"
+  else
+    run_phase "$V" "generate" "$LOG_DIR" "$JSONL" "$T_GENERATE" "$MATRIX_ROOT" -- \
+      ./scripts/generate.sh "$V"
+    if [[ $? -ne 0 ]]; then
+      for p in npm-install pod-install codegen-check cmake-configure cmake-build ctest; do
+        record_skipped "$V" "$p" "$JSONL"
+      done
+      continue
+    fi
+  fi
+
   # phase: npm-install
-  # (The presence of $APP_DIR was already validated by the preflight above.)
   if [[ -f "$APP_DIR/package-lock.json" ]]; then
     run_phase "$V" "npm-install" "$LOG_DIR" "$JSONL" "$T_NPM" "$APP_DIR" -- npm ci
   else

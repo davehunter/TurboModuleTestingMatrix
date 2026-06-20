@@ -35,10 +35,12 @@ write_summary() {
     local phases_arr
     phases_arr="$(jq -s '.' "$jsonl")"
 
+    # A version is `pass` when no phase failed or timed out. `skipped` is
+    # benign — it's emitted by lazy generate (app already present) and by
+    # short-circuit on an earlier failure (which itself triggers `fail` via
+    # the any-fail clause above). Either way: no fail/timeout, the run is pass.
     local v_status
-    v_status="$(jq -r 'if any(.status == "fail" or .status == "timeout") then "fail"
-                       elif any(.status == "skipped") and all(.status != "fail" and .status != "timeout") and any(.status == "pass" | not) then "fail"
-                       else (if all(.status == "pass") then "pass" else "fail" end) end' <<<"$phases_arr")"
+    v_status="$(jq -r 'if any(.status == "fail" or .status == "timeout") then "fail" else "pass" end' <<<"$phases_arr")"
     [[ "$v_status" == "fail" ]] && overall="fail"
 
     local test_summary='null'
@@ -93,7 +95,7 @@ _parse_junit() {
 
 _render_table() {
   local summary="$1"
-  local phase_order=(npm-install pod-install codegen-check cmake-configure cmake-build ctest)
+  local phase_order=(generate npm-install pod-install codegen-check cmake-configure cmake-build ctest)
 
   printf 'TurboModuleTestingMatrix — run %s\n' "$(jq -r .run_id "$summary")"
   printf 'started:  %s\n' "$(jq -r .started "$summary")"
