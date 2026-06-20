@@ -4,25 +4,24 @@ Note, this is a very AI generated testsuite by claude 2.1.181 (Opus 4.8)
 
 Tests to verify that [TurboModuleTesting](https://github.com/davehunter/TurboModuleTesting) works across multiple React Native versions.
 
-The matrix holds one fully-locked host app per RN version under `apps/<rn>/HostApp/`, a shared `RTNTestableModule/` exercised by every version, and a driver that compiles + runs the framework's tests against each.
+The matrix holds a shared `RTNTestableModule/` plus a driver that generates a host app per RN version on demand into `_generated/<rn>/HostApp/`, then compiles + runs the framework's tests against each. Apps regenerate from scratch when `_generated/` is missing — there's no committed app state to maintain.
 
 ## Add a new RN version
 
 The 30-second version:
 
 ```sh
-# 1. Edit versions.json — add an entry like:
+# 1. Edit versions.json — add one entry, e.g.:
 #    { "rn": "0.87.0", "cli": "@react-native-community/cli@latest", "cliInitFlavor": "community", "node": ">=20", "ruby": "3.2", "notes": "" }
 
-# 2. Generate the host app:
-PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/generate.sh 0.87.0
+# 2. Validate locally (auto-generates the missing host app):
+PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run-matrix.sh 0.87.0
 
-# 3. Validate locally:
-PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run-matrix.sh
-
-# 4. Commit + PR:
-git checkout -b add-rn-0.87.0 && git add versions.json apps/0.87.0/ && gh pr create
+# 3. Commit + PR:
+git checkout -b add-rn-0.87.0 && git add versions.json && gh pr create
 ```
+
+`run-matrix.sh` invokes `scripts/generate.sh` as its first phase per version when `_generated/<rn>/HostApp/` doesn't exist yet. The result is that adding a version is literally one line in `versions.json` — CI does the rest.
 
 **Read [`docs/ADDING_VERSIONS.md`](./docs/ADDING_VERSIONS.md) before adding a version that's far from what's already in the matrix.** Every minor we've added between 0.80 and 0.86 has surfaced at least one regression that needed a coordinated framework + matrix change. That doc covers every failure shape we've hit so far and where to fix it.
 
@@ -51,13 +50,13 @@ TURBO_MODULE_TESTING_TAG=v0.0.3 scripts/run-matrix.sh
 
 | Path | Purpose |
 | --- | --- |
-| `apps/<rn>/HostApp/` | Generated, committed host app per RN version. Lock files committed; `node_modules/`, `Pods/`, `vendor/bundle/` gitignored. |
+| `_generated/<rn>/HostApp/` | Auto-generated host app per RN version, materialized on demand by `run-matrix.sh`'s `generate` phase. Not committed; rebuild from scratch by deleting `_generated/`. |
 | `RTNTestableModule/` | The C++ TurboModule under test. Vendored from `TurboModuleTestingExample/RTNTestableModule/`; owned by the matrix from that point. |
 | `versions.json` | Authoritative list of supported RN versions. |
 | `overlays/_shared/` | Files rsynced onto every freshly-init'd HostApp. `package.json.patch.json` is applied as a JSON Merge Patch. |
 | `overlays/<rn>/` | Per-version overrides applied after the shared overlay. Create only when a version genuinely needs a difference. |
 | `CMakeLists.txt`, `CMake/` | Per-version configure (driver invokes once per version with `-DEXAMPLE_APP_PATH=...`). |
-| `scripts/generate.sh` | Generates or refreshes `apps/<rn>/HostApp/`. |
+| `scripts/generate.sh` | Generates or refreshes `_generated/<rn>/HostApp/`. Invoked automatically by `run-matrix.sh`; callable directly for `--force` / `--update` modes. |
 | `scripts/run-matrix.sh` | Drives every (or one) version through the phases and writes `results/<run-id>/`. |
 
 ## CI

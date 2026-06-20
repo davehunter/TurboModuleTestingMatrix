@@ -31,11 +31,11 @@ require_known_version() {
   fi
 }
 
-# missing_host_app_dirs <rn...> — prints any versions whose apps/<rn>/HostApp/
+# missing_host_app_dirs <rn...> — prints any versions whose _generated/<rn>/HostApp/
 # is absent. Caller decides how to report.
 missing_host_app_dirs() {
   local rn
   for rn in "$@"; do
-    [[ -d "${MATRIX_ROOT}/apps/${rn}/HostApp" ]] || echo "$rn"
+    [[ -d "${MATRIX_ROOT}/_generated/${rn}/HostApp" ]] || echo "$rn"
   done
 }

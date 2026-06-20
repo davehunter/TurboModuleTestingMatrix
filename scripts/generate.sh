@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# Generate or refresh apps/<version>/HostApp for a given React Native version.
+# Generate or refresh _generated/<version>/HostApp for a given React Native version.
 #
 # Usage:
 #   scripts/generate.sh <rn-version> [--force | --update]
 #
-#   default     fail if apps/<rn>/HostApp/ already exists
+#   default     fail if _generated/<rn>/HostApp/ already exists
 #   --force     rm -rf and re-init from scratch
 #   --update    skip the 'init' step; re-apply overlays and re-run npm/pod install
 #               (the common case after a shared overlay or RTNTestableModule change)
@@ -48,12 +48,12 @@ CLI_SPEC="$(version_field "$VERSION" cli)"
 FLAVOR="$(version_field "$VERSION" cliInitFlavor)"
 [[ "$FLAVOR" == "community" ]] || die "unsupported cliInitFlavor: $FLAVOR (only 'community' implemented)"
 
-APP_DIR="${MATRIX_ROOT}/apps/${VERSION}/HostApp"
+APP_DIR="${MATRIX_ROOT}/_generated/${VERSION}/HostApp"
 
 case "$MODE" in
   create)
     if [[ -e "$APP_DIR" ]]; then
-      err "apps/${VERSION}/HostApp already exists."
+      err "_generated/${VERSION}/HostApp already exists."
       err "  --force  : rm -rf and re-init"
       err "  --update : re-apply overlays and re-run install (no re-init)"
       exit 1
@@ -66,11 +66,11 @@ case "$MODE" in
     fi
     ;;
   update)
-    [[ -d "$APP_DIR" ]] || die "--update requires apps/${VERSION}/HostApp to exist"
+    [[ -d "$APP_DIR" ]] || die "--update requires _generated/${VERSION}/HostApp to exist"
     ;;
 esac
 
-mkdir -p "${MATRIX_ROOT}/apps/${VERSION}"
+mkdir -p "${MATRIX_ROOT}/_generated/${VERSION}"
 
 if [[ "$MODE" != "update" ]]; then
   info "init: $CLI_SPEC init HostApp --version $VERSION"
@@ -148,12 +148,12 @@ cat <<EOF
 Generation complete for RN $VERSION.
 
 Next steps:
-  git add apps/${VERSION}/
+  git add _generated/${VERSION}/
   # node_modules/, ios/Pods/, ios/build/, vendor/bundle/ are gitignored
 
 Lock files that SHOULD be committed:
-  apps/${VERSION}/HostApp/package-lock.json
-  apps/${VERSION}/HostApp/Gemfile.lock
-  apps/${VERSION}/HostApp/ios/Podfile.lock
+  _generated/${VERSION}/HostApp/package-lock.json
+  _generated/${VERSION}/HostApp/Gemfile.lock
+  _generated/${VERSION}/HostApp/ios/Podfile.lock
 
 EOF
