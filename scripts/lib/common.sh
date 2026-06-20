@@ -32,6 +32,61 @@ require_cmd() {
   done
 }
 
+# ensure_compatible_ruby
+#
+# CocoaPods 1.15.2 (pinned by the RN-template Gemfile) fails on Ruby >= 3.4
+# with `LoadError - cannot load such file -- kconv` — that stdlib module was
+# removed from the default gems. The matrix needs Ruby 3.2 or 3.3.
+#
+# If the current `ruby` is incompatible, look for a side-installed compatible
+# Ruby (e.g. `brew install ruby@3.3`) and prepend it to PATH. If none is
+# present, fail with a clear actionable error rather than letting pod install
+# blow up halfway through generate.
+#
+# Idempotent: safe to call from both `run-matrix.sh` and a directly-invoked
+# `generate.sh`. Exported PATH propagates to child processes.
+ensure_compatible_ruby() {
+  local minor=""
+  if command -v ruby >/dev/null 2>&1; then
+    minor="$(ruby -e 'print RUBY_VERSION.split(".")[0..1].join(".")' 2>/dev/null || true)"
+  fi
+
+  case "$minor" in
+    3.2|3.3)
+      return 0
+      ;;
+  esac
+
+  local candidate
+  for candidate in \
+    /opt/homebrew/opt/ruby@3.3/bin \
+    /opt/homebrew/opt/ruby@3.2/bin \
+    /usr/local/opt/ruby@3.3/bin \
+    /usr/local/opt/ruby@3.2/bin
+  do
+    if [[ -x "$candidate/ruby" ]]; then
+      info "found compatible Ruby at $candidate; prepending to PATH (current shell Ruby was ${minor:-unknown})"
+      export PATH="${candidate}:${PATH}"
+      return 0
+    fi
+  done
+
+  err "═══════════════════════════════════════════════════════════════"
+  err "incompatible Ruby on PATH (found ${minor:-none})."
+  err ""
+  err "CocoaPods 1.15.2 — pinned via the RN Gemfile — fails on Ruby >= 3.4"
+  err "with \`LoadError - cannot load such file -- kconv\` because that stdlib"
+  err "module is no longer part of the default gems."
+  err ""
+  err "Install a compatible Ruby:"
+  err "  brew install ruby@3.3   # or @3.2"
+  err ""
+  err "Then re-run this script — it auto-detects and prepends the Homebrew"
+  err "ruby@3.3 path. No manual PATH export needed."
+  err "═══════════════════════════════════════════════════════════════"
+  return 1
+}
+
 # run_phase <version> <phase> <log_dir> <jsonl_path> <timeout_seconds> <cwd> -- <cmd...>
 #
 # Captures stdout+stderr to the per-phase log file, streams a prefixed copy to

@@ -15,7 +15,7 @@ The 30-second version:
 #    { "rn": "0.87.0", "cli": "@react-native-community/cli@latest", "cliInitFlavor": "community", "node": ">=20", "ruby": "3.2", "notes": "" }
 
 # 2. Validate locally (auto-generates the missing host app):
-PATH=/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run-matrix.sh 0.87.0
+./scripts/run-matrix.sh 0.87.0
 
 # 3. Commit + PR:
 git checkout -b add-rn-0.87.0 && git add versions.json && gh pr create
@@ -66,7 +66,7 @@ The framework's [`pr.yml` workflow](../TurboModuleTesting/.github/workflows/pr.y
 ## Requirements (local)
 
 - macOS (the framework is macOS-only)
-- **Ruby 3.2 or 3.3** — CocoaPods 1.15.2 (pinned via the RN-template `Gemfile`) uses `kconv`, which was removed from the stdlib in Ruby 3.4 / 4.0. CI pins Ruby 3.2 via `ruby/setup-ruby@v1`; for local runs use `brew install ruby@3.3` or `rbenv install 3.3.x`.
+- **Ruby 3.2 or 3.3** installed and discoverable — CocoaPods 1.15.2 (pinned via the RN-template `Gemfile`) uses `kconv`, which was removed from the stdlib in Ruby 3.4 / 4.0. `brew install ruby@3.3` is enough; the scripts auto-detect a side-installed Homebrew `ruby@3.3` (or `@3.2`) and prepend it to `PATH` when the shell Ruby is incompatible. CI pins Ruby 3.2 via `ruby/setup-ruby@v1`.
 - Node 20+
 - CMake 3.22+, Ninja
 - Xcode + Command Line Tools

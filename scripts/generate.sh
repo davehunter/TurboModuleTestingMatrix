@@ -21,6 +21,7 @@ source "$SCRIPT_DIR/lib/versions.sh"
 # shellcheck source=scripts/lib/apply-overlay.sh
 source "$SCRIPT_DIR/lib/apply-overlay.sh"
 
+ensure_compatible_ruby || exit 1
 require_cmd jq rsync npx npm bundle pod
 
 usage() {
