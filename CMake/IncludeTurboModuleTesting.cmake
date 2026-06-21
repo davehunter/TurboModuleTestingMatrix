@@ -4,6 +4,14 @@
 #   3. Sibling fallback: ../TurboModuleTesting
 #   4. Hard error.
 macro(include_turbo_module_testing app_path)
+    # Enable OBJCXX so RN's Objective-C++ sources compile through the right
+    # CMake language path. RN < 0.80's react/utils includes
+    # ManagedObjectWrapper.mm; the matrix needs OBJCXX enabled at the
+    # consumer's directory scope (here — this macro is included from the
+    # matrix's top-level CMakeLists, so enable_language runs in file scope).
+    # No-op when called a second time.
+    enable_language(OBJCXX)
+
     include(FetchContent)
 
     if(DEFINED ENV{TURBO_MODULE_TESTING_SRC} AND NOT DEFINED TURBO_MODULE_TESTING_SRC)
