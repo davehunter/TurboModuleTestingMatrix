@@ -3,13 +3,13 @@
 
 # all_versions
 all_versions() {
-  jq -r '.versions[].rn' "${MATRIX_ROOT}/versions.json"
+  jq -r '.versions[].rn' "${MATRIX_VERSIONS_FILE:-${MATRIX_ROOT}/versions.json}"
 }
 
 # get_version <rn> -> JSON object on stdout, non-zero if not found.
 get_version() {
   local rn="$1"
-  jq -e --arg rn "$rn" '.versions[] | select(.rn == $rn)' "${MATRIX_ROOT}/versions.json"
+  jq -e --arg rn "$rn" '.versions[] | select(.rn == $rn)' "${MATRIX_VERSIONS_FILE:-${MATRIX_ROOT}/versions.json}"
 }
 
 # version_field <rn> <field>
@@ -17,7 +17,7 @@ version_field() {
   local rn="$1" field="$2"
   jq -er --arg rn "$rn" --arg f "$field" \
     '.versions[] | select(.rn == $rn) | .[$f] // empty' \
-    "${MATRIX_ROOT}/versions.json"
+    "${MATRIX_VERSIONS_FILE:-${MATRIX_ROOT}/versions.json}"
 }
 
 # require_known_version <rn> — exits non-zero with a clear error if unknown.

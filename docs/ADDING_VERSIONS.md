@@ -170,3 +170,32 @@ The build dir reset forces a clean configure for every version — useful becaus
 | `ctest` fails | A real regression in the framework or the test module | The actual test output in `results/<run>/<rn>/logs/ctest.log` |
 
 The framework is the right place for almost every fix that's not "a pod was renamed". Anything that needs to be conditional on the consuming app's RN version uses the `TMT_RN_VERSION_MAJOR/MINOR/PATCH` compile defs (C++) or the `TMT_RN_VERSION_MINOR` CMake variable (CMake).
+
+## Auditing patch-level coverage
+
+`versions.json` pins a small curated list — usually the latest patch of each minor. That keeps CI fast but lets patch-level regressions hide between the pins.
+
+For periodic deep audits, run:
+
+```sh
+./scripts/run-from.sh 0.80 --dry-run    # preview (count + estimate)
+./scripts/run-from.sh 0.80              # run every stable 0.80.x → latest
+```
+
+`run-from.sh` enumerates every stable RN patch published to npm from `<start>` onward, preserves curated `versions.json` entries verbatim for versions we already pin (so explicit CLI pins like `@15` are kept), and synthesizes safe defaults for the rest. It writes the synthesized list to `results/<run-id>/versions.discovered.json` for transparency, then dispatches to `run-matrix.sh` with `MATRIX_VERSIONS_FILE` set.
+
+Sweep wall-clock is roughly **6 min per cold version**: 30 patches ≈ 3 hours. Versions already on disk in `_generated/<v>/HostApp/` short-circuit `generate` as `skipped` and re-run in a minute or two each.
+
+### This is not used by CI — by design
+
+The matrix CI workflow keeps reading the curated `versions.json` on every PR. `run-from.sh` exists for deliberate, occasional audits, not for the per-PR feedback loop.
+
+### When a sweep surfaces a failure
+
+The summary table tells you which version and which phase failed. Map the failure back into the curated matrix:
+
+- **Failure at a patch we don't pin** (e.g. `0.83.4` red, `0.83.1` and `0.83.9` green): bump or split the pinned version in `versions.json` so CI starts catching it going forward. Add `0.83.4` to the matrix, or replace `0.83.1` with the broken patch range.
+- **Failure at a code path the framework handles version-conditionally** (e.g. a new CMake quirk in a minor we don't yet tolerate): land the fix in `TurboModuleTesting` with a `TMT_RN_VERSION_MINOR`/`PATCH` guard. Same shape as every other RN-version-conditional code path the framework already has.
+- **Failure at a podspec dep that drifted in a patch**: update `RTNTestableModule.podspec`. The Ruby version-detection block already shows the pattern.
+
+The point of `run-from.sh` is to make the curated matrix's coverage claim falsifiable. Use it whenever you bump a curated entry to a newer patch (does the gap you skipped over still pass?), whenever a new RN minor releases (does the framework still handle every patch of the previous minor?), or as a general health check before a release.

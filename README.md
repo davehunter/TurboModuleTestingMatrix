@@ -25,6 +25,17 @@ git checkout -b add-rn-0.87.0 && git add versions.json && gh pr create
 
 **Read [`docs/ADDING_VERSIONS.md`](./docs/ADDING_VERSIONS.md) before adding a version that's far from what's already in the matrix.** Every minor we've added between 0.80 and 0.86 has surfaced at least one regression that needed a coordinated framework + matrix change. That doc covers every failure shape we've hit so far and where to fix it.
 
+## Stress-test against every RN patch (local only)
+
+```sh
+./scripts/run-from.sh 0.83 --dry-run   # preview what would run
+./scripts/run-from.sh 0.83             # run every stable 0.83.x → latest
+```
+
+`run-from.sh` discovers every stable RN patch published to npm from a starting version onward, synthesizes safe defaults for the ones not pinned in `versions.json` (curated entries are preserved verbatim), and runs the same pipeline as the regular matrix against the lot. A run from 0.80 is ~3 hours wall-clock; the dry-run preview shows the count and estimate before you commit.
+
+**This is local-only by design — CI keeps running just the curated `versions.json`.** When a sweep surfaces a regression at a patch we don't pin, the response is to refine the curated list (or fix the framework), not to expand CI. See [`docs/ADDING_VERSIONS.md`](./docs/ADDING_VERSIONS.md#auditing-patch-level-coverage) for the loop-back policy.
+
 ## Run the matrix
 
 ```sh
